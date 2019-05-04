@@ -1,0 +1,39 @@
+---
+title: "运维体系概览"
+author: "yonlli"
+date: "2019/05/03"
+output:
+  xaringan::moon_reader:
+    css: [default, zh-CN.css]
+    #css: [default, metropolis]
+    lib_dir: libs
+    nature:
+      highlightStyle: github
+      highlightLines: true
+      countIncrementalSlides: false
+
+---
+
+# Part I. 运维体系发展
+
+# Part II. 运维方法论
+
+# Part III. 核心组件
+
+# Part IV. 未来趋势
+
+---
+
+# 运维体系发展阶段
+
+![](http://techforum-img.cn-hangzhou.oss-pub.aliyun-inc.com/1536653470933/2.jpg)
+.footnote[
+[1] [从人肉到智能，阿里运维体系经历了哪些变迁？](https://102.alibaba.com/detail?id=184)
+]
+
+---
+
+# 运维方法论
+
+
+
