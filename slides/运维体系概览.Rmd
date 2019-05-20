@@ -25,27 +25,20 @@ output:
 
 ---
 
-# 运维体系发展阶段
-
-<div style="width: auto; height: auto;max-height: 75%">
-
-![](http://techforum-img.cn-hangzhou.oss-pub.aliyun-inc.com/1536653470933/2.jpg)
-
-</div>
-
-.footnote[
-[1] [从人肉到智能，阿里运维体系经历了哪些变迁？](https://102.alibaba.com/detail?id=184)
-]
-
----
-
 # 软件开发：瀑布流 vs 敏捷
+
+.image-75[
 
 ![](https://thecitybase.com/wp-content/uploads/2018/09/agilewaterfall2.jpg)
 
+]
+
+.footnote[
 运维体系随着软件工程的变迁而发展
+]
 
 ???
+
 
 - 传统瀑布流模型
   - 客户需求是事先确定的，经过漫长的分析、设计、开发、测试、部署，最终交付到客户手上。这个模式的确定是中间缺乏反馈过程。
@@ -56,6 +49,24 @@ output:
   - 互联网时代的需求变化太快，传统的瀑布流模型难以满足，这个时代强调的是尽早上线，快速迭代。通过用户反馈调整需求。这个模式的问题嘛……
   - 通过刷新浏览器，或者自动更新，版本的迭代很快交付到用户手上。
   - 面前整个互联网，拥有海量用户，垂直扩展已经难以解决性能问题，转而采取扩展——更多的廉价的pc server，更多接入层，更多cdn……这也意味着更大的部署规模。
+  
+---
+
+
+# 运维体系发展阶段
+
+.image-75[
+
+![](images/dataops.jpg)
+
+]
+
+.footnote[
+[1] [从人肉到智能，阿里运维体系经历了哪些变迁？](https://102.alibaba.com/detail?id=184)
+]
+
+---
+
 
 ---
 

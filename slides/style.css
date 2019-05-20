@@ -1,0 +1,18 @@
+.sparse {
+  overflow-x:auto;
+}
+
+.sparse > table {
+  width: 100%;
+}
+
+.image-50 img {
+  width: 50%;
+}
+
+.image-75 img {
+  width: 75%;
+  display: block;
+  margin-left: auto;
+  margin-right: auto;
+}
