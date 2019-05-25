@@ -36,4 +36,11 @@ output:
 # 运维方法论
 
 
+- 传统运维
+- Site Reliability Engineering
+- DevOps
+
+.footnote[
+https://resources.collab.net/devops-101/what-is-devops
+]
 
