@@ -1,7 +1,7 @@
 # Istio路由管理简介
 
-本文以Istio 1.3.0 在Kubernetes中的部署为例，结合其bookinfo例子（https://istio.io/docs/examples/bookinfo/#deploying-the-application）对Istio的 v1apha3 路由API进行简要的介绍。
-其中Istio采用了Evaluation Install（https://istio.io/docs/setup/install/kubernetes/）。正文内容需要读者对Kubernetes和Istio的基本概念有基本的了解。
+本文以Istio 1.3.0 在Kubernetes中的部署为例，结合其bookinfo例子(https://istio.io/docs/examples/bookinfo/#deploying-the-application)对Istio的 v1apha3 路由API进行简要的介绍。
+其中Istio采用了Evaluation Install(https://istio.io/docs/setup/install/kubernetes/)。正文内容需要读者对Kubernetes和Istio的基本概念有基本的了解。
 
 ## Service Mesh 简介
 
@@ -27,14 +27,14 @@
 
 ## Istio 路由管理
 
-Istio的官方博文《Introducing the Istio v1alpha3 routing API》（https://istio.io/blog/2018/v1alpha3-routing/）中写道：
+Istio的官方博文《Introducing the Istio v1alpha3 routing API》(https://istio.io/blog/2018/v1alpha3-routing/)中写道：
 
 > A typical mesh will have one or more load balancers (we call them gateways) that terminate TLS from external networks and allow traffic into the mesh. Traffic then flows through internal services via sidecar gateways. It is also common for applications to consume external services (e.g., Google Maps API). These may be called directly or, in certain deployments, all traffic exiting the mesh may be forced through dedicated egress gateways. The following diagram depicts this mental model.
 
-我有意不对翻译这段文字，以免错误的翻译为大家带来误导，但我会在文章结尾的总结处给出自己的理解。这里有一篇翻译供参考：《Istio服务网格中的网关》(https://www.yangcs.net/posts/istio-ingress/）
+我有意不对翻译这段文字，以免错误的翻译为大家带来误导，但我会在文章结尾的总结处给出自己的理解。这里有一篇翻译供参考：《Istio服务网格中的网关》(https://www.yangcs.net/posts/istio-ingress/)
 
 
-![](https://istio.io/blog/2018/v1alpha3-routing/gateways.svg)
+![](https://raw.githubusercontent.com/4179e1/photon/master/istio/img/gateways.png)
 
 Istio v1alpha3路由模型引入了4种配置资源，分别是
 
@@ -45,7 +45,7 @@ Istio v1alpha3路由模型引入了4种配置资源，分别是
 
 这些资源的控制流如下图所示
 
-![](https://istio.io/blog/2018/v1alpha3-routing/virtualservices-destrules.svg)
+![](https://raw.githubusercontent.com/4179e1/photon/master/istio/img/virtualservices-destrules.png)
 
 
 下面结合[bookinfo例子](https://istio.io/docs/examples/bookinfo/#deploying-the-application)简要介绍这4种资源，在继续阅读前，建议浏览这里((https://istio.io/docs/examples/bookinfo/#deploying-the-application))以便对bookinfo有一个大概的了解。
@@ -60,7 +60,7 @@ Istio v1alpha3路由模型引入了4种配置资源，分别是
 
 Istio的Gateway其实是运行在Kubernetes中的一组工作负载，可以有多个Gateway的工作负载共存，它们也可以有多个实现。目前Istio的Gateway其实也是Envoy，暂时不清楚目前是否支持其他实现，比如nginx-ingress之类的。
 
-Bookinfo的网关配置（samples/bookinfo/networking/bookinfo-gateway.yaml）如下：
+Bookinfo的网关配置(samples/bookinfo/networking/bookinfo-gateway.yaml)如下：
 
 ```yaml
 apiVersion: networking.istio.io/v1alpha3
