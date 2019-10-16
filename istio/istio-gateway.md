@@ -59,7 +59,7 @@ Istio v1alpha3路由模型引入了4种配置资源，分别是
 
 ## Gateway
 
-Istio的Gateway其实是运行在Kubernetes中的一组工作负载，可以有多个Gateway的工作负载共存，它们也可以有多个实现，虽然目前Istio支持的只有Envoy，理论上其他实现了xDS协议的程序也可以作为Gateway。
+Istio的Gateway其实是运行在Kubernetes中的一组工作负载，可以有多个Gateway的工作负载共存，它们也可以有多个实现。目前Istio的Gateway其实也是Envoy，暂时不清楚目前是否支持其他实现，比如nginx-ingress之类的。
 
 Bookinfo的网关配置（samples/bookinfo/networking/bookinfo-gateway.yaml）如下：
 
