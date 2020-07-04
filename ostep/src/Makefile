@@ -1,5 +1,5 @@
 all:
-	gcc -o concurrent -Wall concurrent.c
+	gcc -o concurrent -Wall -lpthread concurrent.c
 
 
 clean:

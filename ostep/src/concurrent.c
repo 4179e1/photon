@@ -4,13 +4,17 @@
 
 static volatile int counter = 0;
 
+pthread_mutex_t lock = PTHREAD_MUTEX_INITIALIZER;
+
 void *mythread(void *arg)
 {
     int i;
     int n = (int)arg;
     for (i = 0; i < n; i++)
     {
+        pthread_mutex_lock(&lock);
         counter += 1;
+        pthread_mutex_unlock(&lock);
     }
     return NULL;
 }
