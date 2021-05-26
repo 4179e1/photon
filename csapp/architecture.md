@@ -50,14 +50,14 @@
 
 ## 数据传送指令
 
-| 指令         | 效果   | 描述 |
-| ------------ | ------ | ---- |
-| MOV S,D      | D <- S |      |
-| movb S,D     |        |      |
-| movw S,D     |        |      |
-| movl S,D     |        |      |
-| movq S,D     |        |      |
-| movabsq I, R | R <- I |      |
+| 指令             | 效果   | 描述 |
+| ---------------- | ------ | ---- |
+| `MOV S,D`        | D <- S |      |
+| &emsp;`movb S,D` |        |      |
+| &emsp;`movw S,D` |        |      |
+| &emsp;`movl S,D` |        |      |
+| &emsp;`movq S,D` |        |      |
+| `movabsq I, R`   | R <- I |      |
 
 x86-64不允许两个操作数都是内存位置，因此把一个内存的值传送到另一个内存的值需要两条指令。
 
@@ -117,3 +117,58 @@ x86-64不允许两个操作数都是内存位置，因此把一个内存的值�
 
 - 算术右移会扩展符号位
 - 逻辑右移会补0
+
+## Control
+
+### Condition Codes
+
+- CF: `Carry flag`. The most recent operation generated a carry out of the most significant bit. Used to detect overflow for unsigned operations.
+- ZF: `Zero flag`. The most recent operation yielded zero.
+- SF: `Sign flag`. The most recent operation yielded a negative value.
+- OF: `Overflow flag`. The most recent operation caused a two’s-complement overflow—either negative or positive.
+
+ 假如在C中进行整数计算`t = a + b`，那么处理器会这样设置标志位
+
+|     |                                      |              |
+| --- | ------------------------------------ | ------------ |
+| CF  | (unsigned) t < (unsigned) a          | 无符号数溢出 |
+| ZF  | (t == 0)                             | 结果为0      |
+| SF  | (t < 0)                              | 结果为负数   |
+| OF  | (a < 0 == b < 0) && (t < 0 != a < 0) | 有符号数溢出 |
+
+
+| 指令                              | 基于                          | 描述                 |
+| --------------------------------- | ----------------------------- | -------------------- |
+| CMP  S<sub>1</sub>, S<sub>2</sub> | S<sub>2</sub> - S<sub>1</sub> | 比较                 |
+| &emsp;cmpb                        |                               |                      |
+| &emsp;cmpw                        |                               |                      |
+| &emsp;cmpl                        |                               |                      |
+| &emsp;cmpq                        |                               |                      |
+| CMP  S<sub>1</sub>, S<sub>2</sub> | S<sub>1</sub> & S<sub>2</sub> | 测试 （logical AND） |
+| &emsp;testb                       |                               |                      |
+| &emsp;testw                       |                               |                      |
+| &emsp;testl                       |                               |                      |
+| &emsp;testq                       |                               |                      |
+
+### 读取状态位
+
+1. we can set a single byte to 0 or 1 depending on some combination of the condition codes
+2.  we can conditionally jump to some other part of the program, or 
+3.  we can conditionally transfer data. 
+
+对于第1种情况，可以使用以下指令
+
+| 指令    | 同义词 | 效果             | 设置的条件                   |
+| ------- | ------ | ---------------- | ---------------------------- |
+| sete D  | setz   | D ← ZF           | Equal / zero                 |
+| setne D | setnz  | D ← ~ZF          | Not equal / not zero         |
+| sets D  |        | D ← SF           | Negative                     |
+| setns D |        | D ← ~SF          | Nonnegative                  |
+| setg D  | setnle | D ← ~(SF^OF)&~ZF | Greater (signed >)           |
+| setge D | setnl  | D ← ~(SF^OF)     | Greater or equal (signed >=) |
+| setl D  | setnge | D ← SF^OF        | Less (signed <)              |
+| setle D | setng  | D ← (SF^OF)      | ZF                           | Less or equal (signed <=)    |
+| seta D  | setnbe | D ← ~CF&~ZF      | Above (unsigned >)           |
+| setae D | setnb  | D ← ~CF          | Above or equal (unsigned >=) |
+| setb    | setnae | D ← CF           | Below (unsigned <)           |
+| setbe D | setna  | D ← CF           | ZF                           | Below or equal (unsigned <=) |
