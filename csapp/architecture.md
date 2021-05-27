@@ -46,6 +46,8 @@
 | 寄存器 | r<sub>a</sub>                        | R[ r<sub>a</sub> ]                               |
 | 内存   | Imm(r<sub>b</sub>, r<sub>i</sub>, s) | M[ Imm + R[r<sub>b</sub>] + R[r<sub>i</sub>]*s ] |
 
+
+
 > s必须是1，2，4或者8
 
 ## 数据传送指令
@@ -75,12 +77,14 @@ x86-64不允许两个操作数都是内存位置，因此把一个内存的值�
 
 ## 栈
 
-| 指令      | 效果                    |
-| --------- | ----------------------- |
-| `pushq S` | R[%rsp] <- R[%rsp] - 8; |
-|           | M[R[%rsp]] <- S         |
-| `popq D`  | D <- M[R[%rsp]];        |
-|           | R[%rsp] <- $[%rsp] + 8  |
+| 指令      | 效果                    | 等同于         |
+| --------- | ----------------------- | -------------- |
+| `pushq S` | R[%rsp] <- R[%rsp] - 8; | subq $8,%rsp   |
+|           | M[R[%rsp]] <- S         | movq S, (%rsp) |
+| `popq D`  | D <- M[R[%rsp]];        | movq (%rsp),D  |
+|           | R[%rsp] <- $[%rsp] + 8  | addq $8,%rsp   |
+
+![](img/stack.png)
 
 ## 算术和逻辑运算
 
@@ -153,8 +157,8 @@ x86-64不允许两个操作数都是内存位置，因此把一个内存的值�
 ### 读取状态位
 
 1. we can set a single byte to 0 or 1 depending on some combination of the condition codes
-2.  we can conditionally jump to some other part of the program, or 
-3.  we can conditionally transfer data. 
+2. we can conditionally jump to some other part of the program, or 
+3. we can conditionally transfer data. 
 
 对于第1种情况，可以使用以下指令
 
@@ -167,8 +171,180 @@ x86-64不允许两个操作数都是内存位置，因此把一个内存的值�
 | setg D  | setnle | D ← ~(SF^OF)&~ZF | Greater (signed >)           |
 | setge D | setnl  | D ← ~(SF^OF)     | Greater or equal (signed >=) |
 | setl D  | setnge | D ← SF^OF        | Less (signed <)              |
-| setle D | setng  | D ← (SF^OF)      | ZF                           | Less or equal (signed <=)    |
+| setle D | setng  | D ← (SF^OF)\| ZF | Less or equal (signed <=)    |
 | seta D  | setnbe | D ← ~CF&~ZF      | Above (unsigned >)           |
 | setae D | setnb  | D ← ~CF          | Above or equal (unsigned >=) |
 | setb    | setnae | D ← CF           | Below (unsigned <)           |
-| setbe D | setna  | D ← CF           | ZF                           | Below or equal (unsigned <=) |
+| setbe D | setna  | D ← CF\| ZF      | Below or equal (unsigned <=) |
+
+### 跳转指令
+
+
+| 指令         | 同义词 | 跳转条件     | 描述                         |
+| ------------ | ------ | ------------ | ---------------------------- |
+| jmp Label    |        | 1            | Direct jump                  |
+| jmp *Operand |        | 1            | Indirect jump                |
+| je Label     | jz     | ZF           | Equal / zero                 |
+| jneLabel     | jnz    | ~ZF          | Not equal / not zero         |
+| js Label     |        | SF           | Negative                     |
+| jns Label    |        | ~SF          | Nonnegative                  |
+| jg Label     | jnle   | ~(SF^OF)&~ZF | Greater (signed >)           |
+| jge Label    | jnl    | ~(SF^OF)     | Greater or equal (signed >=) |
+| jl Label     | jnge   | SF^OF        | Less (signed <)              |
+| jle Label    | jng    | (SF^OF)\| ZF | Less or equal (signed <=)    |
+| ja Label     | jnbe   | ~CF&~ZF      | Above (unsigned >)           |
+| jae Label    | jnb    | ~CF          | Above or equal (unsigned >=) |
+| jb Label     | jnae   | CF           | Below (unsigned <)           |
+| jbe Label    | jna    | CF\| ZF      | Below or equal (unsigned <=) |
+
+
+跳转指令可以使用PC相对值，如`8 <loop+0x8>`的位置指向0x8，它是PC的值（下一条指令）5 + 03。
+```asm
+0:  48 89 f8    mov    %rdi,%rax
+3:  eb 03       jmp    8 <loop+0x8>
+5:  48 d1 f8    sar    %rax
+8:  48 85 c0    test   %rax,%rax
+b:  7f f8       jg     5 <loop+0x5>
+d:  f3 c3       repz retq           
+```
+### 实现分支控制
+
+原始代码
+
+```C
+long absdiff (long x, long y)
+{
+    long result;
+    if (x > y)
+        result = x-y;
+    else
+        result = y-x;
+    return result;
+}
+```
+
+goto版本
+
+```C
+long absdiff_j (long x, long y)
+{
+    long result;
+    int ntest = x <= y; 
+    if (ntest) 
+        goto Else; 
+    result = x-y;
+    goto Done;
+Else:
+    result = y-x;
+Done:
+    return result;
+}
+```
+
+生成的汇编代码
+
+```asm
+absdiff:
+    cmpq %rsi, %rdi         # x:y 
+    jle .L4
+    movq %rdi, %rax
+    subq %rsi, %rax
+    ret
+.L4:                        # x <= y
+    movq    %rsi, %rax
+    subq    %rdi, %rax
+    ret
+```
+
+通用形式
+```
+    ntest = !Test;
+    if (ntest) goto Else;
+    val = Then_Expr;
+    goto Done;
+Else:
+    val = Else_Expr;
+Done:
+    ...
+```
+
+### 使用条件转移实现分支
+
+上面实现分支控制的方法在现代处理器体系下存在性能问题，因为分支预测错误的代价太高。当计算比较简单是，一种优化措施是同时计算两个分支的值，然后通过条件转移指令实现。
+
+原始代码
+
+```C
+long absdiff (long x, long y)
+{
+    long result;
+    if (x > y)
+        result = x-y;
+    else
+    r   esult = y-x;
+    return result; 
+}
+```
+
+GOTO版本
+
+```C
+long cmovdiff(long x, long y)
+{
+    long rval = y-x;
+    long eval = x-y;
+    long ntest = x>=y;
+    /* Line below requires single instruction: */
+    if (ntest) rval = eval;
+    return rval;
+}
+```
+
+汇编代码
+
+```asm
+absdiff:
+    movq %rdi, %rax     # x
+    subq %rsi, %rax     # result = x - y
+    movq %rsi, %rdx
+    subq %rdi, %rdx     # eval = y -x 
+    cmpq %rsi, %rdi     # x:y
+    cmovle %rdx, %rax   # if <=, result = eval 
+    ret
+```
+
+通用形式
+```
+result = Then_Expr;
+eval = Else_Expr;
+nt = !Test;
+if (nt) result = eval; 
+return result;
+```
+
+但是这种方式不适合以下几种场景
+
+- 复杂的计算`val = Test(x) ? Hard1(x) : Hard2(x);`
+- 存在风险`val = p ? *p : 0;`
+- 存在副作用`val = x > 0 ? x*=7 : x+=3;`
+
+
+### 条件转移指令
+
+| 指令     | 同义词  | 转移条件     | 描述                         |
+| -------- | ------- | ------------ | ---------------------------- |
+| cmove D  | cmovz   | ZF           | Equal / zero                 |
+| cmovne D | cmovnz  | ~ZF          | Not equal / not zero         |
+|          |         |              |                              |
+| cmovs D  |         | SF           | Negative                     |
+| cmovns D |         | ~SF          | Nonnegative                  |
+|          |         |              |                              |
+| cmovg D  | cmovnle | ~(SF^OF)&~ZF | Greater (signed >)           |
+| cmovge D | cmovnl  | ~(SF^OF)     | Greater or equal (signed >=) |
+| cmovl D  | cmovnge | SF^OF        | Less (signed <)              |
+| cmovle D | cmovng  | (SF^OF)\| ZF | Less or equal (signed <=)    |
+|          |         |              |                              |
+| cmova D  | cmovnbe | ~CF&~ZF      | Above (unsigned >)           |
+| cmovae D | cmovnb  | ~CF          | Above or equal (unsigned >=) |
+| cmovb    | cmovnae | CF           | Below (unsigned <)           |
+| cmovbe D | cmovna  | CF\| ZF      | Below or equal (unsigned <=) |
