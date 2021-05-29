@@ -207,6 +207,27 @@ x86-64不允许两个操作数都是内存位置，因此把一个内存的值�
 b:  7f f8       jg     5 <loop+0x5>
 d:  f3 c3       repz retq           
 ```
+
+### 条件转移指令
+
+| 指令     | 同义词  | 转移条件     | 描述                         |
+| -------- | ------- | ------------ | ---------------------------- |
+| cmove D  | cmovz   | ZF           | Equal / zero                 |
+| cmovne D | cmovnz  | ~ZF          | Not equal / not zero         |
+|          |         |              |                              |
+| cmovs D  |         | SF           | Negative                     |
+| cmovns D |         | ~SF          | Nonnegative                  |
+|          |         |              |                              |
+| cmovg D  | cmovnle | ~(SF^OF)&~ZF | Greater (signed >)           |
+| cmovge D | cmovnl  | ~(SF^OF)     | Greater or equal (signed >=) |
+| cmovl D  | cmovnge | SF^OF        | Less (signed <)              |
+| cmovle D | cmovng  | (SF^OF)\| ZF | Less or equal (signed <=)    |
+|          |         |              |                              |
+| cmova D  | cmovnbe | ~CF&~ZF      | Above (unsigned >)           |
+| cmovae D | cmovnb  | ~CF          | Above or equal (unsigned >=) |
+| cmovb    | cmovnae | CF           | Below (unsigned <)           |
+| cmovbe D | cmovna  | CF\| ZF      | Below or equal (unsigned <=) |
+
 ### 实现分支控制
 
 原始代码
@@ -328,23 +349,21 @@ return result;
 - 存在风险`val = p ? *p : 0;`
 - 存在副作用`val = x > 0 ? x*=7 : x+=3;`
 
+### For-Loop
 
-### 条件转移指令
+For循环可以转换成while循环，然后采用`jump to middle`或`guareded do`两种方式来翻译
 
-| 指令     | 同义词  | 转移条件     | 描述                         |
-| -------- | ------- | ------------ | ---------------------------- |
-| cmove D  | cmovz   | ZF           | Equal / zero                 |
-| cmovne D | cmovnz  | ~ZF          | Not equal / not zero         |
-|          |         |              |                              |
-| cmovs D  |         | SF           | Negative                     |
-| cmovns D |         | ~SF          | Nonnegative                  |
-|          |         |              |                              |
-| cmovg D  | cmovnle | ~(SF^OF)&~ZF | Greater (signed >)           |
-| cmovge D | cmovnl  | ~(SF^OF)     | Greater or equal (signed >=) |
-| cmovl D  | cmovnge | SF^OF        | Less (signed <)              |
-| cmovle D | cmovng  | (SF^OF)\| ZF | Less or equal (signed <=)    |
-|          |         |              |                              |
-| cmova D  | cmovnbe | ~CF&~ZF      | Above (unsigned >)           |
-| cmovae D | cmovnb  | ~CF          | Above or equal (unsigned >=) |
-| cmovb    | cmovnae | CF           | Below (unsigned <)           |
-| cmovbe D | cmovna  | CF\| ZF      | Below or equal (unsigned <=) |
+For循环
+```
+for ( Init ; Test ; Update )
+    Body
+```
+
+对应的While循环
+```
+Init ;
+while ( Test ) {
+    Body
+    Update ;
+}
+```
