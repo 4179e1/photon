@@ -1,42 +1,42 @@
 
 # CPU 体系结构  （X86-64)
 
+
+1. [CPU 体系结构  （X86-64)](#cpu-体系结构--x86-64)
+   1. [CPU 寄存器](#cpu-寄存器)
+   2. [操作数](#操作数)
+   3. [数据传送指令](#数据传送指令)
+   4. [栈](#栈)
+   5. [算术和逻辑运算](#算术和逻辑运算)
+      1. [Load Effective Address](#load-effective-address)
+   6. [算术右移和逻辑右移动](#算术右移和逻辑右移动)
+   7. [Control](#control)
+      1. [Condition Codes](#condition-codes)
+      2. [读取状态位](#读取状态位)
+      3. [跳转指令](#跳转指令)
+      4. [条件转移指令](#条件转移指令)
+      5. [实现分支控制](#实现分支控制)
+      6. [使用条件转移实现分支](#使用条件转移实现分支)
+      7. [For-Loop](#for-loop)
+   8. [循环](#循环)
+      1. [Do-While Loops](#do-while-loops)
+      2. [While Loops](#while-loops)
+         1. [Jump To Middle](#jump-to-middle)
+         2. [Guarded Do](#guarded-do)
+      3. [switch 语句](#switch-语句)
+   9. [过程调用](#过程调用)
+      1. [运行时栈](#运行时栈)
+      2. [使用惯例](#使用惯例)
+      3. [参数传递](#参数传递)
+      4. [返回地址](#返回地址)
+
 ## CPU 寄存器
 
 - 通用寄存器如rax
 - 特殊寄存器如rip,rsp
 - 标志位
 
-## 使用惯例
-
 ![](./img/registers.png)
-
-- rax：返回值
-- rsp：栈指针
-- rbp：基址指针（非必须）
-  
-- 调用者保存：
-  - r10
-  - r11
-- 被调者保存：
-  - rbx
-  - ebp
-  - r12
-  - r13
-  - r14
-  - r16
-
-> 假如函数f调用函数g，那么函数f需要先把r10和r11的值压栈保存起来（如果它用到这个两个寄存器的话），因为函数g会直接覆盖里面的内容（如果它需要的话）。
-
-参数传递：
-- rdi 第1个参数
-- rsi 第2个参数
-- rdx 第3个参数
-- rcx 第4个参数
-- r8  第5个参数
-- r9  第6个参数
-- TODO： 其他参数
-
 
 ## 操作数
 
@@ -207,6 +207,27 @@ x86-64不允许两个操作数都是内存位置，因此把一个内存的值�
 b:  7f f8       jg     5 <loop+0x5>
 d:  f3 c3       repz retq           
 ```
+
+### 条件转移指令
+
+| 指令     | 同义词  | 转移条件     | 描述                         |
+| -------- | ------- | ------------ | ---------------------------- |
+| cmove D  | cmovz   | ZF           | Equal / zero                 |
+| cmovne D | cmovnz  | ~ZF          | Not equal / not zero         |
+|          |         |              |                              |
+| cmovs D  |         | SF           | Negative                     |
+| cmovns D |         | ~SF          | Nonnegative                  |
+|          |         |              |                              |
+| cmovg D  | cmovnle | ~(SF^OF)&~ZF | Greater (signed >)           |
+| cmovge D | cmovnl  | ~(SF^OF)     | Greater or equal (signed >=) |
+| cmovl D  | cmovnge | SF^OF        | Less (signed <)              |
+| cmovle D | cmovng  | (SF^OF)\| ZF | Less or equal (signed <=)    |
+|          |         |              |                              |
+| cmova D  | cmovnbe | ~CF&~ZF      | Above (unsigned >)           |
+| cmovae D | cmovnb  | ~CF          | Above or equal (unsigned >=) |
+| cmovb    | cmovnae | CF           | Below (unsigned <)           |
+| cmovbe D | cmovna  | CF\| ZF      | Below or equal (unsigned <=) |
+
 ### 实现分支控制
 
 原始代码
@@ -328,8 +349,9 @@ return result;
 - 存在风险`val = p ? *p : 0;`
 - 存在副作用`val = x > 0 ? x*=7 : x+=3;`
 
+### For-Loop
 
-### 条件转移指令
+For循环可以转换成while循环，然后采用`jump to middle`或`guareded do`两种方式来翻译
 
 | 指令     | 同义词  | 转移条件     | 描述                         |
 | -------- | ------- | ------------ | ---------------------------- |
@@ -435,3 +457,133 @@ done:
     return result;
 }   
 ```
+For循环
+```
+for ( Init ; Test ; Update )
+    Body
+```
+
+对应的While循环
+```
+Init ;
+while ( Test ) {
+    Body
+    Update ;
+}
+```
+
+### switch 语句
+
+```C
+long my_switch (long x, long y, long z) {
+    long w = 1;
+    switch(x) {
+    case 1:         // .L3
+        w = y*z;
+        break;
+    case 2:
+        w = y/z;
+        /* Fall Through */
+    case 3:
+        w += z;
+        break;
+    case 5:
+    case 6:
+        w -= z;
+        break;
+    default:
+        w = 2;
+    }
+    return w;
+}
+```
+
+switch 语句的翻译采用了一张跳转表，范围跟跟case的条件相关
+```
+.section .rodata
+    .align 8
+.L4:
+    .quad .L8 # x = 0   # default
+    .quad .L3 # x = 1
+    .quad .L5 # x = 2
+    .quad .L9 # x = 3
+    .quad .L8 # x = 4   # default
+    .quad .L7 # x = 5
+    .quad .L7 # x = 6
+
+my_switch:
+    movq  %rdx, %rcx
+    cmpq  $6, %rdi          # x:6
+    ja    .L8               # use default
+    jmp   *.L4(,%rdi,8)     # goto *Jtab[x]
+
+L3:
+    movq    %rsi, %rax  # y
+    imulq   %rdx, %rax  # y*z
+    ret
+...
+```
+
+## 过程调用
+
+### 运行时栈
+
+![](img/stack.png)
+
+| 栈底     |                |
+| -------- | -------------- |
+| 较早的栈 |                |
+| 调用者   | 被保存的寄存器 |
+|          | 局部变量       |
+|          | 参数n          |
+|          | ...            |
+|          | 参数7          |
+|          | 返回地址       |
+| 被调者   | 被保存的寄存器 |
+| %rsp     | 局部变量       |
+| 栈顶     |                |
+
+### 使用惯例
+
+
+- rax：返回值
+- rsp：栈指针
+- rbp：基址指针（非必须）
+
+- 调用者保存：
+  - rdi
+  - rsi
+  - rdx
+  - rcx
+  - r8
+  - r9
+  - r10
+  - r11
+- 被调者保存：
+  - rbx
+  - ebp
+  - r12
+  - r13
+  - r14
+  - r16
+
+> 假如函数f调用函数g，那么函数f需要先把r10和r11的值压栈保存起来（如果它用到这个两个寄存器的话），因为函数g会直接覆盖里面的内容（如果它需要的话）。
+
+### 参数传递
+
+在调用者保存的寄存器中，有6个用于参数传递：
+
+| 参数    | 寄存器 | 内存位置                     |
+| ------- | ------ | ---------------------------- |
+| 1       | %rdi   |                              |
+| 2       | %rsi   |                              |
+| 3       | %rdx   |                              |
+| 4       | %rcx   |                              |
+| 5       | %r8    |                              |
+| 6       | %r9    |                              |
+| n(n>=7) |        | %rsp + 8 * 2 +  8 * (n - $7) |
+|         |        | 8 为指针长度                 |
+
+### 返回地址
+
+被调者把返回结果保存到rax中。
