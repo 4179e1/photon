@@ -29,6 +29,7 @@
       2. [使用惯例](#使用惯例)
       3. [参数传递](#参数传递)
       4. [返回地址](#返回地址)
+   10. [数组](#数组)
 
 ## CPU 寄存器
 
@@ -587,3 +588,21 @@ L3:
 ### 返回地址
 
 被调者把返回结果保存到rax中。
+
+
+## 数组
+
+假设有一个数组 `int E[5]`，E的地址在寄存器 `%rdx` 中，i 在 `%rcx` 中，那么`E[i]`的地址为
+`movl (%rdx, %rcx, 4), %rax`
+
+| 表达式       | 类型  | 值                         | 汇编代码                       |
+| ------------ | ----- | -------------------------- | ------------------------------ |
+| E            | int * | x<sub>E</sub>              | `movl %rdx, %rax`              |
+| E[0]         | int   | M[x<sub>E</sub>]           | `movl (%rdx), %eax`            |
+| E[i]         | int   | M[x<sub>E</sub> + 4i]      | `movl (%rdx, %rcx, i), %eax`   |
+| &E[2]        | int * | x<sub>E</sub> + 8          | `leaq 8(%rdx), %rax`           |
+| E + i - 1    | int * | x<sub>E</sub> + 4i - 4     | `leaq -4(%rdx, %rcx, 4),%rax`  |
+| *(E + i - 3) | int   | M[x<sub>E</sub> + 4i - 12] | `movl -12(%rdx, %rcx, 4),%eax` |
+| &E[i] - E    | long  | i                          | `movq % rcx, %rax`             |
+
+注意`E[i]`和`&E[2]`分别使用了`mov`和`lea`指令.
