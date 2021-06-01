@@ -84,7 +84,7 @@ x86-64不允许两个操作数都是内存位置，因此把一个内存的值�
 | `popq D`  | D <- M[R[%rsp]];        | movq (%rsp),D  |
 |           | R[%rsp] <- $[%rsp] + 8  | addq $8,%rsp   |
 
-![](img/stack.png)
+![](img/stack2.png)
 
 ## 算术和逻辑运算
 
@@ -348,3 +348,90 @@ return result;
 | cmovae D | cmovnb  | ~CF          | Above or equal (unsigned >=) |
 | cmovb    | cmovnae | CF           | Below (unsigned <)           |
 | cmovbe D | cmovna  | CF\| ZF      | Below or equal (unsigned <=) |
+
+## 循环
+
+### Do-While Loops
+
+C Code
+```C
+long pcount_do (unsigned long x) { 
+    long result = 0; 
+    do {
+        result += x & 0x1;
+        x >>= 1;
+    } while (x);
+    return result;
+}
+```
+
+GOTO版本
+
+```C
+long pcount_do (unsigned long x) {
+    long result = 0; 
+    do {
+        result += x & 0x1;
+        x >>= 1;
+    } while (x);
+    return result;
+}
+```
+
+ASM
+```asm
+    movl    $0, %eax    #   result = 0
+.L2:                    # loop:
+    movq %rdi, %rdx 
+    andl $1,%edx        # t=x&0x1
+    addq %rdx, %rax     # result += t
+    shrq %rdi           # x>>=1
+    jne .L2             # if(x) goto loop
+    rep; ret
+```
+
+### While Loops
+
+```C
+long pcount_while (unsigned long x) { 
+    long result = 0; 
+    while (x) {
+        result += x & 0x1;
+        x >>= 1; 
+    }
+    return result;
+}
+```
+
+#### Jump To Middle
+
+while loop可以按照Do-While loop的方式去翻译，在开始时先测试，
+```C
+long pcount_goto_jtm (unsigned long x) { 
+    long result = 0; goto test;
+loop:
+    result += x & 0x1;
+    x >>= 1;
+test:
+    if(x) goto loop;
+    return result;
+}
+```
+
+#### Guarded Do
+
+更常见的翻译方式是
+
+```C
+long pcount_goto_dw (unsigned long x) { 
+    long result = 0; 
+    if (!x) 
+        goto done;
+loop:
+    result += x & 0x1;
+    x >>= 1;
+    if(x) goto loop;
+done:
+    return result;
+}   
+```
