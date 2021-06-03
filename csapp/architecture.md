@@ -34,6 +34,7 @@
       1. [struct](#struct)
       2. [union](#union)
    12. [align](#align)
+   13. [GDB cheatsheet](#gdb-cheatsheet)
 
 ## CPU 寄存器
 
@@ -694,3 +695,51 @@ struct S2 {
 ```
 
 ![](img/align2.png)
+
+
+## GDB cheatsheet
+
+
+| Command                        | Effect                                                        |
+| ------------------------------ | ------------------------------------------------------------- |
+| *Starting and stopping*        |                                                               |
+| quit                           | Exit gdb                                                      |
+| run                            | Run your program (give command-line arguments here)           |
+| kill                           | Stop your program                                             |
+|                                |                                                               |
+| *Breakpoints*                  |                                                               |
+| break multstore                | Set breakpoint at entry to function multstore                 |
+| break *0x400540                | Set breakpoint at address 0x400540                            |
+| delete 1                       | Delete breakpoint 1                                           |
+| delete                         | Delete all breakpoints                                        |
+|                                |
+| *Execution*                    |
+| stepi                          | Execute one instruction                                       |
+| stepi 4                        | Execute four instructions                                     |
+| nexti                          | Like stepi, but proceed through function calls                |
+| continue                       | Resume execution                                              |
+| finish                         | Run until current function returns                            |
+|                                |                                                               |
+| *Examining code*               |                                                               |
+| disas                          | Disassemble current function                                  |
+| disas multstore                | Disassemble function multstore                                |
+| disas 0x400544                 | Disassemble function around address 0x400544                  |
+| disas 0x400540, 0x40054d       | Disassemble code within specified address range               |
+| print /x $rip                  | Print program counter in hex                                  |
+|                                |                                                               |
+| *Examining data*               |
+| print $rax                     | Print contents of %rax in decimal                             |
+| print /x $rax                  | Print contents of %rax in hex                                 |
+| print /t $rax                  | Print contents of %rax in binary                              |
+| print 0x100                    | Print decimal representation of 0x100                         |
+| print /x 555                   | Print hex representation of 555                               |
+| print /x ($rsp+8)              | Print contents of %rsp plus 8 in hex                          |
+| print *(long *) 0x7fffffffe818 | Print long integer at address 0x7fffffffe818                  |
+| print *(long *) ($rsp+8)       | Print long integer at address %rsp + 8                        |
+| x/2g 0x7fffffffe818            | Examine two (8-byte) words starting at address 0x7fffffffe818 |
+| x/20b multstore                | Examine first 20 bytes of function multstore                  |
+|                                |                                                               |
+| *Useful information*           |                                                               |
+| info frame                     | Information about current stack frame                         |
+| info registers                 | Values of all the registers                                   |
+| help                           | Get information about gdb                                     |
