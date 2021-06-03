@@ -30,6 +30,10 @@
       3. [参数传递](#参数传递)
       4. [返回地址](#返回地址)
    10. [数组](#数组)
+   11. [数据结构](#数据结构)
+      1. [struct](#struct)
+      2. [union](#union)
+   12. [align](#align)
 
 ## CPU 寄存器
 
@@ -606,3 +610,87 @@ L3:
 | &E[i] - E    | long  | i                          | `movq % rcx, %rax`             |
 
 注意`E[i]`和`&E[2]`分别使用了`mov`和`lea`指令.
+
+
+## 数据结构
+
+### struct
+
+
+```C
+struct rec {
+    int i;
+    int j;
+    int a[2];
+    int *p;
+};
+
+struct rect *r;
+```
+
+r->i = r->j
+
+```
+# Registers: r in %rdi
+movl (%rdi), %eax     # Get r->i
+movl %eax, 4(%rdi)    # Store in r->j
+```
+
+&(r->a[i])
+
+```
+# Registers: r in %rdi, i %rsi
+leaq 8(%rdi,%rsi,4), %rax   #Set %rax to &r->a[i]
+```
+
+r->p = &r->a[r->i + r->j]
+
+```
+# Registers: r in %rdi
+movl  4(%rdi), %eax         # Get r->j   
+addl  (%rdi), %eax          # Add r->i
+cltq                        # Extend to 8 bytes
+leaq  8(%rdi,%rax,4), %rax  # Compute &r->a[r->i + r->j]
+movq  %rax, 16(%rdi)        # Store in r->p             
+```
+
+### union
+
+```
+double uu2double(unsigned word0, unsigned word1)
+{
+    union {
+        double d;
+        unsigned u[2];
+    } temp;
+    temp.u[0] = word0;
+    temp.u[1] = word1;
+    return temp.d;
+}
+```
+
+- Little Endian:    word1:word0
+- Big Endian:       word0:word1
+
+
+## align
+
+```C
+struct S1 {
+    int  i;
+    char c;
+    int  j;
+};
+```
+
+![](img/align1.png)
+
+```C
+struct S2 {
+    int  i;
+    int  j;
+    char c;
+};
+```
+
+![](img/align2.png)
