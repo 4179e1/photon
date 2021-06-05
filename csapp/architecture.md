@@ -35,6 +35,12 @@
       2. [union](#union)
    12. [align](#align)
    13. [GDB cheatsheet](#gdb-cheatsheet)
+   14. [Buffer Overflow](#buffer-overflow)
+      1. [Thwarting Buffer Overflow Attacks](#thwarting-buffer-overflow-attacks)
+         1. [Stack Randomization](#stack-randomization)
+         2. [Stack Corruption Detection](#stack-corruption-detection)
+      2. [Limiting Executable Code Regions](#limiting-executable-code-regions)
+   15. [Variable-Size Stack Frames](#variable-size-stack-frames)
 
 ## CPU 寄存器
 
@@ -743,3 +749,125 @@ struct S2 {
 | info frame                     | Information about current stack frame                         |
 | info registers                 | Values of all the registers                                   |
 | help                           | Get information about gdb                                     |
+
+## Buffer Overflow
+
+```C
+/* Implementation of library function gets() */
+char *gets(char *s)
+{
+    int c;
+    char *dest = s;
+    while ((c = getchar()) != ’\n’ && c != EOF)
+        *dest++ = c;
+    if (c == EOF && dest == s)
+        /* No characters read */
+        return NULL;
+    *dest++ = ’\0’; /* Terminate string */
+    return s; 
+}
+
+/* Read input line and write it back */
+void echo()
+{
+    char buf[8];  /* Way too small! */
+    gets(buf);
+    puts(buf);
+}
+```
+
+```
+# void echo()
+echo:
+  subq    $24, %rsp     # Allocate 24 bytes on stack
+  movq    %rsp, %rdi    # Compute buf as %rsp
+  call    gets          # Call gets
+  movq    %rsp, %rdi    # Compute buf as %rsp
+  call    puts          # Call puts
+  addq    $24, %rsp     # Deallocate stack space
+  ret                   # return
+```
+
+![](./img/overflow.png)
+
+### Thwarting Buffer Overflow Attacks
+
+#### Stack Randomization
+
+Linux `ASLR(address-space layout randomization)`
+
+#### Stack Corruption Detection
+
+![](./img/canary.png)
+
+```
+void echo()
+
+  echo:
+  subq  $24, %rsp        Allocate 24 bytes on stack
+  movq  %fs:40, %rax     Retrieve canary
+  movq  %rax, 8(%rsp)    Store on stack
+  xorl  %eax, %eax       Zero out register
+  movq  %rsp, %rdi       Compute buf as %rsp
+  call  gets             Call gets
+  movq  %rsp, %rdi       Compute buf as %rsp
+  call  puts             Call puts
+  movq  8(%rsp), %rax    Retrieve canary
+  xorq  %fs:40, %rax     Compare to stored value
+  je    .L9              If =, goto ok
+  call  __stack_chk_fail Stack corrupted!
+.L9:                     ok:
+  addq  $24, %rsp        Deallocate stack space
+  ret
+```
+
+### Limiting Executable Code Regions
+
+CPU NX (for “no-execute”) bit
+
+## Variable-Size Stack Frames
+
+```C
+long vframe(long n, long idx, long *q)  {
+    long i;
+    long *p[n];
+    p[0] = &i;
+    for (i = 1; i < n; i++)
+        p[i] = q;
+    return *p[idx];
+}
+```
+
+```
+# long vframe(long n, long idx, long *q) n in %rdi, idx in %rsi, q in %rdx
+# Only portions of code shown
+vframe:
+  pushq   %rbp                   # Save old %rbp               
+  movq    %rsp, %rbp             # Set frame pointer
+  subq    $16, %rsp              # Allocate space for i (%rsp = s1
+  leaq    22(,%rdi,8), %rax
+  andq    $-16, %rax
+  subq    %rax, %rsp             # Allocate space for array p (%rsp = s2)
+  leaq    7(%rsp), %rax
+  shrq    $3, %rax
+  leaq    0(,%rax,8), %r8        # Set %r8 to &p[0]
+  movq    %r8, %rcx              # Set %rcx to &p[0] (%rcx = p)
+  ...
+# Code for initialization loop
+# i in %rax and on stack, n in %rdi, p in %rcx, q in %rdx
+.L3
+  movq    %rdx, (%rcx,%rax,8)    # Set p[i] to q
+  addq    $1, %rax               # Increment i
+  movq    %rax, -8(%rbp)         # Store on stack
+
+.L2:
+  movq    -8(%rbp), %rax         # Retrieve i from stack 
+  cmpq    %rdi, %rax             # Compare i:n
+  jl      .L3                    # If <, goto loop
+...
+# Code for function exit
+  leave                           # Restore %rbp and %rsp
+  ret                             # Return
+```
+
+![](./img/rbp.png)
